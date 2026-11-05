@@ -22,6 +22,8 @@ class FitConfig:
     patience: int = 8
     dice_weight: float = 1.0
     amp: bool = True  # mixed precision, used only on CUDA
+    augment: bool = False  # random flips / 90-degree rotations, shared by both dates and the mask
+    cosine: bool = False  # cosine learning-rate decay over the epochs
 
 
 def pick_device() -> torch.device:
@@ -53,6 +55,15 @@ def predict_proba(model: ChangeNet, before: np.ndarray, after: np.ndarray, batch
     return np.concatenate(out)
 
 
+def _augment(b: Tensor, a: Tensor, m: Tensor, rng: np.random.Generator):
+    """One random rotation (0/90/180/270) and optional flip applied to the whole batch."""
+    k = int(rng.integers(0, 4))
+    b, a, m = (torch.rot90(t, k, (-2, -1)) for t in (b, a, m))
+    if rng.random() < 0.5:
+        b, a, m = (t.flip(-1) for t in (b, a, m))
+    return b, a, m
+
+
 def fit(model: ChangeNet, train: tuple, val: tuple, cfg: FitConfig, seed: int = 0,
         device: torch.device | None = None) -> dict:
     """Train with early stopping on validation F1; restores the best weights."""
@@ -61,6 +72,7 @@ def fit(model: ChangeNet, train: tuple, val: tuple, cfg: FitConfig, seed: int = 
     rng = np.random.default_rng(seed)
     model.to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    sched = (torch.optim.lr_scheduler.CosineAnnealingLR(opt, cfg.epochs) if cfg.cosine else None)
     use_amp = cfg.amp and device.type == "cuda"
     scaler = torch.amp.GradScaler(enabled=use_amp)
     tb, ta, tm = (torch.from_numpy(x) for x in train)
@@ -73,6 +85,8 @@ def fit(model: ChangeNet, train: tuple, val: tuple, cfg: FitConfig, seed: int = 
         for i in range(0, len(order), cfg.batch):
             idx = torch.from_numpy(order[i:i + cfg.batch])
             b, a, m = tb[idx].to(device), ta[idx].to(device), tm[idx].to(device)
+            if cfg.augment:
+                b, a, m = _augment(b, a, m, rng)
             with torch.autocast(device.type, enabled=use_amp):
                 loss = bce_dice_loss(model(b, a).float(), m, cfg.dice_weight)
             opt.zero_grad()
@@ -80,9 +94,15 @@ def fit(model: ChangeNet, train: tuple, val: tuple, cfg: FitConfig, seed: int = 
             scaler.step(opt)
             scaler.update()
             total += loss.item() * len(idx)
+        if sched is not None:
+            sched.step()
         prob = predict_proba(model, vb, va, device=device)
-        f1 = M.scores(prob >= 0.5, vm)["f1"]
-        history.append({"epoch": epoch, "train_loss": total / len(tb), "val_f1": f1})
+        # select on the best-threshold F1: with ~0.5% positive pixels a fixed 0.5 cut-off is
+        # almost always wrong, and the final evaluation also picks its threshold on validation
+        thr = M.best_threshold(prob, vm)
+        f1 = M.scores(prob >= thr, vm)["f1"]
+        history.append({"epoch": epoch, "train_loss": total / len(tb), "val_f1": f1,
+                        "val_threshold": thr})
         if f1 > best + 1e-4:
             best, best_state, stale = f1, copy.deepcopy(model.state_dict()), 0
         else:

@@ -18,6 +18,8 @@ terravision-datasets  ──▶  terravision-models  ──▶  terravision-anal
 | [`terravision-models`](terravision-models) | `fc-ef` / `fc-siam-conc` / `fc-siam-diff` U-Nets, NT-Xent and contrastive pretraining (augmentation or temporal positives), BCE+Dice training, baselines, experiments |
 | [`terravision-analytics`](terravision-analytics) | checkpoints, whole-scene inference, polygon extraction, change statistics, CLI and HTTP API |
 
+![TerraVision architecture: datasets, models, analytics](docs/figures/architecture.png)
+
 ## Research questions
 
 1. **Label efficiency.** With 5–100% of the labelled tiles, does self-supervised pretraining
@@ -54,6 +56,8 @@ with at least 90% valid pixels in both dates: **14,918 tiles**, split **by area*
 training tiles contain any change. Build it with
 `terravision-data spacenet --cache <dir> --out <dir> --aois 30 --tile 64`.
 
+![Example tiles: before, after and the derived new-building label](docs/figures/dataset_examples.png)
+
 ### Non-deep baselines (test split, change class)
 
 | method | precision | recall | F1 | IoU | kappa |
@@ -63,6 +67,8 @@ training tiles contain any change. Build it with
 
 Simple methods fail because seasonal and illumination differences between months dwarf the
 signal of new buildings.
+
+![Test F1 of the pixel baselines and the Siamese U-Nets](docs/figures/baselines_vs_deep.png)
 
 ### How much does a leaky split inflate the score? (same model, same data)
 
@@ -75,6 +81,8 @@ paired). "Overlapping pairs" = train/test tile pairs sharing pixels (the audit):
 | random tiles | 0.258 / 0.148 | 0.292 / 0.171 | 1,857 / 1,886 |
 | spatial blocks (overlaps purged) | 0.225 / 0.127 | 0.295 / 0.173 | 0 / 0 |
 | whole areas (scenes) | **0.192 / 0.106** | **0.201 / 0.112** | 0 / 0 |
+
+![Test F1 under random, blocked and whole-area splits](docs/figures/split_leakage.png)
 
 Random tile splits put the same location (other date pair, adjacent tiles) on both sides; the
 strict whole-area split scores lower in both seeds (F1 0.19–0.20 vs 0.26–0.29, a relative
@@ -99,6 +107,8 @@ whose labels are used; empty tiles are then thinned to the same number as tiles 
 | 25% | 0.187 ± 0.014 | 0.196 ± 0.042 | +0.009 | 2 / 3 |
 | 100% | 0.227 ± 0.015 | 0.224 ± 0.015 | −0.002 | 2 / 3 |
 
+![Test F1 against the share of labelled tiles, random against pretrained initialisation](docs/figures/label_efficiency.png)
+
 What this supports: more labels help clearly (F1 0.14 → 0.23), and the deep model is more than
 twice as good as the pixel baselines (0.09–0.11). SSL initialisation is slightly ahead at the
 three low label fractions (+0.009 to +0.015) and level at 100%, **but the gaps are no larger than
@@ -113,6 +123,49 @@ footprints (noisy), and 30 areas. Raw values:
 Commands: [`terravision-models/results/spacenet/run.sh`](terravision-models/results/spacenet/run.sh).
 
 
+### Improving the model: what helped and what did not
+
+After the studies above I trained longer (25 epochs), added flip/rotation augmentation and a
+cosine learning-rate schedule, and compared fusion designs and tile sizes. One seed each; the
+checkpoint of each run is the epoch with the best validation F1 (best threshold); the test set is
+evaluated once. Results in
+[`terravision-models/results/spacenet/config_*.json`](terravision-models/results/spacenet):
+
+| configuration | validation F1 | test F1 | test IoU | precision | recall |
+|---|---|---|---|---|---|
+| Siamese, \|difference\| skips, 64 px | 0.279 | 0.216 | 0.121 | 0.191 | 0.249 |
+| Siamese, \|difference\| skips, 128 px tiles | 0.199* | 0.211 | 0.118 | 0.189 | 0.238 |
+| early fusion (before ‖ after as one input), 64 px | 0.272 | 0.235 | 0.133 | 0.245 | 0.226 |
+| **Siamese, concatenated skips, 64 px** | **0.296** | **0.254** | **0.146** | 0.248 | 0.261 |
+
+\* validated on 300 128-px tiles, a different subset, so not directly comparable. The earlier
+10-epoch |difference| model scored 0.227 ± 0.015 (three seeds), and the three-seed spread
+means differences of about 0.02 F1 are within noise.
+
+![Validation and test F1 for four configurations](docs/figures/configurations.png)
+
+- The configuration with the best *validation* F1 (concatenated skips) also has the best test F1
+  (0.254, IoU 0.146); it is the saved model
+  [`results/spacenet/best_model.pt`](terravision-models/results/spacenet/best_model.pt). Its
+  advantage over the earlier model (+0.03 F1) is about two seed standard deviations: suggestive,
+  not conclusive.
+- **Longer training, augmentation and larger context did not help by themselves** (the
+  |difference| model stayed at 0.21–0.23 with either 64 or 128 px tiles). The limit appears to
+  be the noisy derived labels and the differences between areas, not optimisation.
+- The held-out areas below show what an F1 of 0.25 looks like: the model finds a number of
+  real construction sites (blue) but misses many small buildings (orange), especially in the
+  dense hillside scene, and raises some false alarms (pink).
+
+![Two held-out scenes: before, after, label and detection result](docs/figures/scene_overlay.png)
+
+**Two methodological problems found along the way (both fixed):**
+(1) Checkpoint selection in the label-efficiency and leakage experiments used F1 at a fixed 0.5
+threshold, which is nearly meaningless with 0.5% positive pixels; this adds noise to those
+earlier runs (it affects all arms equally). The configuration comparison uses best-threshold
+selection. (2) A bug in my `train` command misaligned the validation images and masks, so
+early stopping ran on garbage in two discarded runs; test scores were unaffected because they
+use the full aligned validation set. A regression test now covers it.
+
 ## Quick start
 
 ```bash
@@ -120,6 +173,15 @@ git clone https://github.com/saaki05/project-4 && cd project-4
 pip install -e terravision-datasets -e terravision-models -e terravision-analytics
 terravision-data synth --out data/synth                      # synthetic, smoke test only
 terravision-models label-efficiency --data data/synth --out results/le.json --seeds 0
+```
+
+## Regenerating the figures
+
+Every figure in `docs/figures/` is produced from the result files by a script (no number is
+typed by hand). `pip install matplotlib`, then:
+
+```bash
+python scripts/make_figures.py --tiles data/sn7 --cache cache/   # best_model.pt is used for the overlay
 ```
 
 ## License

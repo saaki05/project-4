@@ -1,0 +1,179 @@
+{
+  "kind": "fc-siam-diff",
+  "widths": [
+    16,
+    32,
+    64
+  ],
+  "epochs_run": 25,
+  "best_val_f1": 0.19881044737522627,
+  "test": {
+    "precision": 0.18874011731701096,
+    "recall": 0.2383375468994058,
+    "f1": 0.21065890507468635,
+    "iou": 0.11772987591473115,
+    "accuracy": 0.9908390277454753,
+    "kappa": 0.20611417740880855,
+    "threshold": 0.05
+  },
+  "train_tiles": 2174,
+  "config": {
+    "lr": 0.002,
+    "augment": true,
+    "cosine": true,
+    "seed": 0,
+    "neg_ratio": 1.0
+  },
+  "history": [
+    {
+      "epoch": 0,
+      "train_loss": 1.4841927793339622,
+      "val_f1": 0.035356904603068715,
+      "val_threshold": 0.3
+    },
+    {
+      "epoch": 1,
+      "train_loss": 1.077408743979411,
+      "val_f1": 0.11417375428596874,
+      "val_threshold": 0.3
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.9794588289133649,
+      "val_f1": 0.10330856153924463,
+      "val_threshold": 0.85
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.9293289556893715,
+      "val_f1": 0.12974699336294226,
+      "val_threshold": 0.2
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.8972200784753415,
+      "val_f1": 0.11713452424352898,
+      "val_threshold": 0.95
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.8855786677775519,
+      "val_f1": 0.13635631875503085,
+      "val_threshold": 0.15
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.87949090521601,
+      "val_f1": 0.14904870924449357,
+      "val_threshold": 0.1
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.8750664871443052,
+      "val_f1": 0.16191201452756135,
+      "val_threshold": 0.3
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.8629589521676548,
+      "val_f1": 0.15562169713903906,
+      "val_threshold": 0.2
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.8528820552624138,
+      "val_f1": 0.1644421367704102,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.8566282832414158,
+      "val_f1": 0.17067789302832798,
+      "val_threshold": 0.1
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.8499271607004182,
+      "val_f1": 0.16025977269888847,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.8401265607147779,
+      "val_f1": 0.16560324223215214,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 13,
+      "train_loss": 0.8353683563033264,
+      "val_f1": 0.18780414865562897,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 14,
+      "train_loss": 0.8269092667069913,
+      "val_f1": 0.18911870271386888,
+      "val_threshold": 0.1
+    },
+    {
+      "epoch": 15,
+      "train_loss": 0.8261794008129545,
+      "val_f1": 0.1771930276268699,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 16,
+      "train_loss": 0.8152787355293126,
+      "val_f1": 0.1935435510469242,
+      "val_threshold": 0.1
+    },
+    {
+      "epoch": 17,
+      "train_loss": 0.8089485857173074,
+      "val_f1": 0.19881044737522627,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 18,
+      "train_loss": 0.8165236751530953,
+      "val_f1": 0.1966021850255588,
+      "val_threshold": 0.1
+    },
+    {
+      "epoch": 19,
+      "train_loss": 0.8245183755305237,
+      "val_f1": 0.19608332917020532,
+      "val_threshold": 0.15
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.8037177248624013,
+      "val_f1": 0.19787864684124146,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 21,
+      "train_loss": 0.8082750022356512,
+      "val_f1": 0.19595358993922493,
+      "val_threshold": 0.2
+    },
+    {
+      "epoch": 22,
+      "train_loss": 0.8009300525844262,
+      "val_f1": 0.19768804602599616,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 23,
+      "train_loss": 0.8036588274675877,
+      "val_f1": 0.19456470128201547,
+      "val_threshold": 0.05
+    },
+    {
+      "epoch": 24,
+      "train_loss": 0.813960609133351,
+      "val_f1": 0.19841098259647605,
+      "val_threshold": 0.1
+    }
+  ]
+}

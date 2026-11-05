@@ -168,3 +168,71 @@ def test_label_efficiency_with_balancing_and_val_subset(tmp_path):
                            ssl_epochs=1, device=DEV, neg_ratio=1.0, val_stop_tiles=8)
     assert res["neg_ratio"] == 1.0 and "scratch@1.0" in res["summary"]
     assert res["runs"]["train_tiles_used"]["1.0@0"] <= len(ds.split.train)
+
+
+def test_augmentation_keeps_the_three_arrays_aligned():
+    from terravision_models.train import _augment
+
+    b = torch.zeros(2, 3, 8, 8)
+    b[:, :, 1, 2] = 1.0
+    m = torch.zeros(2, 8, 8)
+    m[:, 1, 2] = 1.0
+    for seed in range(8):
+        ab, aa, am = _augment(b, b.clone(), m, np.random.default_rng(seed))
+        idx = torch.nonzero(am[0])[0]
+        assert ab[0, 0, idx[0], idx[1]] == 1.0 and aa[0, 2, idx[0], idx[1]] == 1.0
+
+
+def test_train_command_saves_a_checkpoint_loadable_by_analytics(tmp_path):
+    from terravision_data import save_dataset
+
+    save_dataset(build_ds(tmp_path), tmp_path / "d")
+    code = main(["train", "--data", str(tmp_path / "d"), "--out", str(tmp_path / "r.json"),
+                 "--checkpoint", str(tmp_path / "m.pt"), "--epochs", "2", "--widths", "8", "16",
+                 "32", "--augment", "--cosine"])
+    assert code == 0
+    ck = torch.load(tmp_path / "m.pt", weights_only=False)
+    assert ck["format_version"] == 1 and ck["widths"] == [8, 16, 32] and ck["kind"]
+    ChangeNet(ck["kind"], ck["bands"], tuple(ck["widths"])).load_state_dict(ck["state_dict"])
+
+
+def test_fit_selects_checkpoints_by_best_threshold_f1():
+    """A model whose probabilities are all below 0.5 must still be scored by its best cut-off."""
+    from terravision_models.train import fit as fit_model
+
+    before, after, mask, _ = make_data(n_scenes=4)
+    pack = lambda s: (before[s], after[s], mask[s])  # noqa: E731
+    torch.manual_seed(0)
+    net = ChangeNet("fc-siam-diff", 3, (8, 16, 32))
+    info = fit_model(net, pack(slice(0, 40)), pack(slice(40, 60)),
+                     FitConfig(epochs=3, batch=8, patience=3), 0, DEV)
+    assert all("val_threshold" in h for h in info["history"])
+    assert info["best_val_f1"] == max(h["val_f1"] for h in info["history"])
+    assert any(h["val_threshold"] != 0.5 for h in info["history"])
+
+
+def test_train_command_validation_subset_stays_aligned(tmp_path, monkeypatch):
+    """Regression: images and masks of the early-stopping subset must be subset identically."""
+    from terravision_data import save_dataset
+
+    import terravision_models.train as tr
+
+    seen = {}
+    real_fit = tr.fit
+
+    def spy(model, train, val, cfg, seed=0, device=None):
+        seen["val"] = val
+        return real_fit(model, train, val, cfg, seed, device)
+
+    monkeypatch.setattr("terravision_models.train.fit", spy)
+    ds = build_ds(tmp_path)
+    save_dataset(ds, tmp_path / "d")
+    main(["train", "--data", str(tmp_path / "d"), "--out", str(tmp_path / "r.json"),
+          "--checkpoint", str(tmp_path / "m.pt"), "--epochs", "1", "--widths", "8", "16", "32",
+          "--val-stop-tiles", "7"])
+    vb, va, vm = seen["val"]
+    # find each selected tile in the full validation arrays: all three must point to one tile
+    full_b, full_a, full_m = (x.astype(np.float32) for x in ds.subset(ds.split.val))
+    for k in range(len(vb)):
+        i = next(j for j in range(len(full_b)) if np.array_equal(full_b[j], vb[k]))
+        assert np.array_equal(full_a[i], va[k]) and np.array_equal(full_m[i], vm[k])

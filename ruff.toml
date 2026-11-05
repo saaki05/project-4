@@ -1,0 +1,8 @@
+# Applies to files outside the packages (the packages carry their own settings in pyproject.toml).
+line-length = 100
+
+[lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[lint.per-file-ignores]
+"scripts/*" = ["E501", "B007", "E402", "B023", "E701", "E702", "E731"]
