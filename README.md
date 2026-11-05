@@ -32,6 +32,7 @@ terravision-datasets  ──▶  terravision-models  ──▶  terravision-anal
 | All three packages implemented and unit-tested on synthetic scenes | yes (shapes, gradients, symmetric fusion, NT-Xent, SSL loss decrease, leakage detection, tile/stitch exactness, GeoJSON georeferencing, API validation) |
 | Experiments on real satellite imagery (OSCD, LEVIR-CD, Sentinel-2) | **not run**: the datasets were not reachable from the development container, which also has no GPU |
 | Raster/GeoTIFF readers for the real datasets | **not written**: they should be developed against the real files |
+| GPU / CUDA / mixed-precision code paths | written, **never executed** (the development container has no GPU); CPU paths are what the tests cover |
 | Published numbers | none; synthetic-data scores only show the pipeline works |
 
 The next step is to download OSCD (check its license), write the loader, build the tile
