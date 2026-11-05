@@ -2,6 +2,7 @@ from terravision_data.splits import (
     TileSplit,
     audit_split,
     purge_overlaps,
+    scene_split,
     spatial_block_split,
 )
 from terravision_data.store import TileDataset, load_dataset, save_dataset
@@ -19,6 +20,7 @@ __all__ = [
     "make_scene",
     "purge_overlaps",
     "save_dataset",
+    "scene_split",
     "spatial_block_split",
     "stitch",
     "tile_origins",

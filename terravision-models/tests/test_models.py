@@ -137,6 +137,7 @@ def test_split_leakage_reports_both_splits():
                         device=DEV)
     assert res["random tiles"]["audit"]["ok"] is False  # random split leaks
     assert res["spatial blocks"]["audit"]["ok"] is True
+    assert res["whole scenes"]["audit"]["ok"] is True
 
 
 def test_cli_label_efficiency(tmp_path, capsys):
@@ -147,3 +148,23 @@ def test_cli_label_efficiency(tmp_path, capsys):
                  str(tmp_path / "r.json"), "--fractions", "1.0", "--seeds", "0", "--epochs", "2",
                  "--ssl-epochs", "1"])
     assert code == 0 and "scratch@1.0" in capsys.readouterr().out
+
+
+def test_balance_tiles_keeps_all_positives_and_caps_negatives():
+    from terravision_models.experiments import balance_tiles
+
+    mask = np.zeros((40, 8, 8), dtype=np.float32)
+    mask[:5, 2, 2] = 1  # five tiles with change
+    arrays = (np.arange(40)[:, None], np.arange(40)[:, None], mask)
+    kept = balance_tiles(arrays, 2.0, np.random.default_rng(0))
+    assert len(kept[0]) == 15 and (kept[2].reshape(15, -1).sum(1) > 0).sum() == 5
+    assert balance_tiles(arrays, None, np.random.default_rng(0))[0].shape[0] == 40
+    assert balance_tiles(arrays, 0.0, np.random.default_rng(0))[0].shape[0] == 5
+
+
+def test_label_efficiency_with_balancing_and_val_subset(tmp_path):
+    ds = build_ds(tmp_path)
+    res = label_efficiency(ds, fractions=(1.0,), seeds=(0,), cfg=FitConfig(epochs=2, batch=8),
+                           ssl_epochs=1, device=DEV, neg_ratio=1.0, val_stop_tiles=8)
+    assert res["neg_ratio"] == 1.0 and "scratch@1.0" in res["summary"]
+    assert res["runs"]["train_tiles_used"]["1.0@0"] <= len(ds.split.train)

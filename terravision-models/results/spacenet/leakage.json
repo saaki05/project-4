@@ -1,0 +1,126 @@
+{
+  "0": {
+    "random tiles": {
+      "audit": {
+        "train_test": 1857,
+        "train_val": 1809,
+        "val_test": 663,
+        "shared_indices": 0,
+        "ok": false
+      },
+      "n_train": 8950,
+      "n_test": 2985,
+      "scores": {
+        "precision": 0.22192907240067716,
+        "recall": 0.30693912303107707,
+        "f1": 0.2576018578774771,
+        "iou": 0.14784328084950568,
+        "accuracy": 0.9904828504501675,
+        "kappa": 0.25293710410417125,
+        "threshold": 0.44999999999999996
+      }
+    },
+    "spatial blocks": {
+      "audit": {
+        "train_test": 0,
+        "train_val": 0,
+        "val_test": 0,
+        "shared_indices": 0,
+        "ok": true
+      },
+      "n_train": 8953,
+      "n_test": 2991,
+      "scores": {
+        "precision": 0.19238846369236512,
+        "recall": 0.27161022532612994,
+        "f1": 0.22523630006009943,
+        "iou": 0.126910585374113,
+        "accuracy": 0.990740124017887,
+        "kappa": 0.22071509923334298,
+        "threshold": 0.7
+      }
+    },
+    "whole scenes": {
+      "audit": {
+        "train_test": 0,
+        "train_val": 0,
+        "val_test": 0,
+        "shared_indices": 0,
+        "ok": true
+      },
+      "n_train": 8941,
+      "n_test": 2973,
+      "scores": {
+        "precision": 0.15798163454580663,
+        "recall": 0.24625087373705282,
+        "f1": 0.1924789062936542,
+        "iou": 0.10648777873954082,
+        "accuracy": 0.989319155603557,
+        "kappa": 0.18736089386624374,
+        "threshold": 0.25
+      }
+    }
+  },
+  "1": {
+    "random tiles": {
+      "audit": {
+        "train_test": 1886,
+        "train_val": 1904,
+        "val_test": 642,
+        "shared_indices": 0,
+        "ok": false
+      },
+      "n_train": 8950,
+      "n_test": 2985,
+      "scores": {
+        "precision": 0.2767308795344217,
+        "recall": 0.3086103873816247,
+        "f1": 0.2918025048311673,
+        "iou": 0.17082480547855297,
+        "accuracy": 0.9921469325795645,
+        "kappa": 0.287865856495381,
+        "threshold": 0.75
+      }
+    },
+    "spatial blocks": {
+      "audit": {
+        "train_test": 0,
+        "train_val": 0,
+        "val_test": 0,
+        "shared_indices": 0,
+        "ok": true
+      },
+      "n_train": 8960,
+      "n_test": 2965,
+      "scores": {
+        "precision": 0.2662766237181173,
+        "recall": 0.3311423946632658,
+        "f1": 0.2951880543065566,
+        "iou": 0.17314992134600918,
+        "accuracy": 0.9920364045373102,
+        "kappa": 0.29123110653743595,
+        "threshold": 0.7999999999999999
+      }
+    },
+    "whole scenes": {
+      "audit": {
+        "train_test": 0,
+        "train_val": 0,
+        "val_test": 0,
+        "shared_indices": 0,
+        "ok": true
+      },
+      "n_train": 8923,
+      "n_test": 3033,
+      "scores": {
+        "precision": 0.18163887805884915,
+        "recall": 0.22417526429754173,
+        "f1": 0.20067779431792987,
+        "iou": 0.11152966027107904,
+        "accuracy": 0.989842767963856,
+        "kappa": 0.19562321325736934,
+        "threshold": 0.1
+      }
+    }
+  }
+}

@@ -45,12 +45,47 @@ def spatial_block_split(boxes: list[TileBox], block: int, fractions=(0.6, 0.2, 0
     return TileSplit(*(np.flatnonzero(side == s) for s in range(3)))
 
 
+def scene_split(boxes: list[TileBox], fractions=(0.6, 0.2, 0.2), seed: int = 0) -> TileSplit:
+    """Assign whole scenes (e.g. cities) to train / validation / test.
+
+    The strictest generalisation test: no location of a test scene is ever seen in training,
+    regardless of acquisition date.
+    """
+    if abs(sum(fractions) - 1) > 1e-9:
+        raise ValueError("fractions must sum to 1")
+    scenes = sorted({b.scene for b in boxes})
+    if len(scenes) < 3:
+        raise ValueError("need at least three scenes")
+    order = np.random.default_rng(seed).permutation(len(scenes))
+    n_tr = max(1, round(fractions[0] * len(scenes)))
+    n_va = max(1, round(fractions[1] * len(scenes)))
+    side = {scenes[i]: (0 if r < n_tr else 1 if r < n_tr + n_va else 2)
+            for r, i in enumerate(order)}
+    which = np.array([side[b.scene] for b in boxes])
+    return TileSplit(*(np.flatnonzero(which == k) for k in range(3)))
+
+
 def _overlap(a: TileBox, b: TileBox) -> bool:
     return (a.scene == b.scene and abs(a.row - b.row) < a.size and abs(a.col - b.col) < a.size)
 
 
 def overlapping_pairs(boxes: list[TileBox], left: np.ndarray, right: np.ndarray):
-    return [(int(i), int(j)) for i in left for j in right if _overlap(boxes[i], boxes[j])]
+    """Index pairs ``(i in left, j in right)`` of tiles that overlap in the same scene."""
+    left, right = np.asarray(left, dtype=int), np.asarray(right, dtype=int)
+    if len(left) == 0 or len(right) == 0:
+        return []
+    scenes = np.array([b.scene for b in boxes])
+    rows = np.array([b.row for b in boxes])
+    cols = np.array([b.col for b in boxes])
+    size = np.array([b.size for b in boxes])
+    pairs = []
+    for scene in set(scenes[left]) & set(scenes[right]):
+        li, ri = left[scenes[left] == scene], right[scenes[right] == scene]
+        near = ((np.abs(rows[li][:, None] - rows[ri][None, :]) < size[li][:, None])
+                & (np.abs(cols[li][:, None] - cols[ri][None, :]) < size[li][:, None]))
+        a, b = np.nonzero(near)
+        pairs += [(int(li[x]), int(ri[y])) for x, y in zip(a, b, strict=True)]
+    return pairs
 
 
 def audit_split(boxes: list[TileBox], split: TileSplit) -> dict:
