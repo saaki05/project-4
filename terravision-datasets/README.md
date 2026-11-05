@@ -23,6 +23,7 @@ learning dependency.
 git clone https://github.com/saaki05/project-4 && cd project-4/terravision-datasets
 pip install -e ".[dev]" && pytest
 terravision-data synth --out data/synth
+terravision-data spacenet --cache cache/ --out data/sn7 --aois 30 --tile 64   # downloads ~0.5 GB
 ```
 
 ## Using real scenes
@@ -44,8 +45,10 @@ save_dataset(TileDataset(np.concatenate([p[0] for p in parts]),
 
 ## Status
 
-Raster readers (GeoTIFF/OSCD/LEVIR-CD) are intentionally not included yet: they must be
-written against the real files, which were not available in the development environment.
+`terravision_data.spacenet` builds a new-construction change dataset from SpaceNet 7 (download,
+month-pair loading, id-based change masks, tiling, split by area) and is tested on a fake local
+layout. Readers for OSCD / LEVIR-CD are not included: they must be written against the real
+files.
 
 ## License
 

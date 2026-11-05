@@ -44,18 +44,20 @@ On a machine with a CUDA GPU the same command trains on the GPU with mixed preci
 
 - All code paths are unit-tested on synthetic scenes (forward shapes, gradient flow,
   symmetric difference fusion, NT-Xent behaviour, SSL loss decrease, training beats a trivial
-  predictor, leakage audit detects a random split, end-to-end CLI).
-- **No experiment on real satellite imagery has been run.** The OSCD and LEVIR-CD downloads
-  were not reachable from the development container. Synthetic scores demonstrate that the
-  pipeline works and say nothing about real change detection.
-- A loader for the real OSCD file layout is not included yet; it should be written against the
-  downloaded files so it can be tested on real inputs.
+  predictor, tile balancing, leakage audit, end-to-end CLI).
+- **Run on real imagery**: a SpaceNet 7-derived new-construction task (30 areas, 14,918 tiles,
+  split by area). Baselines, the split-leakage experiment and the label-efficiency study are in
+  `results/spacenet/` and summarised in the repository README, with their limits (CPU only,
+  3 seeds, short training; SSL gains are within seed noise).
+- A reader for OSCD / LEVIR-CD is not included: it must be written against the real files.
+- CUDA / mixed-precision paths have never been executed (no GPU in the development
+  environment).
 
-## Planned real-data protocol
+## Protocol for a standard benchmark (not yet run)
 
-OSCD (24 Sentinel-2 image pairs; check its license before use): split by scene and spatial
-block, purge overlaps with `terravision-datasets`, report mean ± std over at least 3 seeds at
-each label fraction, and compare against both baselines.
+OSCD (24 Sentinel-2 image pairs; check its license before use): split by scene, purge overlaps
+with `terravision-datasets`, report mean ± std over at least 3 seeds at each label fraction,
+and compare against both baselines.
 
 ## License
 

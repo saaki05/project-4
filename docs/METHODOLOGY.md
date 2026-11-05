@@ -29,6 +29,13 @@ NT-Xent contrastive loss on the shared single-date encoder, with positives forme
 two augmentations of one tile, or from the same tile at the two dates (unchanged content
 dominates, plus augmentation). No change labels are used.
 
+## Real dataset (SpaceNet 7-derived)
+
+New-construction change: building footprints present in a later month whose id is absent
+earlier. Splits are by whole area (scene). Tiles are 64 px with at least 90% valid pixels in
+both dates. Training thins empty tiles to the number of tiles with change (same for every
+compared method).
+
 ## Experiments
 
 1. Label efficiency: random vs. SSL-initialised encoders at label fractions (5%, 10%, 25%,
