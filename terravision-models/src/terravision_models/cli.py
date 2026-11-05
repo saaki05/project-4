@@ -56,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
     le.add_argument("--epochs", type=int, default=30)
     le.add_argument("--ssl-epochs", type=int, default=20)
     le.add_argument("--ssl-mode", default="temporal", choices=["augment", "temporal"])
+    le.add_argument("--augment", action="store_true", help="flip/rotation augmentation")
+    le.add_argument("--cosine", action="store_true", help="cosine learning-rate decay")
     le.add_argument("--neg-ratio", type=float, default=None,
                     help="keep at most this many empty tiles per tile with change (training only)")
     le.add_argument("--val-stop-tiles", type=int, default=None,
@@ -111,7 +113,8 @@ def main(argv: list[str] | None = None) -> int:
                       f"overlapping train/test pairs {r['audit']['train_test']}")
         return 0
     res = label_efficiency(ds, tuple(a.fractions), tuple(a.seeds), a.kind,
-                           FitConfig(epochs=a.epochs), a.ssl_epochs, a.ssl_mode, out_path=a.out,
+                           FitConfig(epochs=a.epochs, augment=a.augment, cosine=a.cosine),
+                           a.ssl_epochs, a.ssl_mode, out_path=a.out,
                            neg_ratio=a.neg_ratio, val_stop_tiles=a.val_stop_tiles)
     for key, s in res["summary"].items():
         print(f"{key:<14} F1 {s['f1']['mean']:.3f} ± {s['f1']['std']:.3f}   "

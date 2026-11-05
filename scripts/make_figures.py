@@ -44,7 +44,7 @@ def label_efficiency():
     ax.minorticks_off()
     ax.set_xlabel("share of labelled training tiles used")
     ax.set_ylabel("test F1 on the change class")
-    ax.set_title("More labels help; pretraining gains stay inside seed noise")
+    ax.set_title("Test F1 against the share of labelled tiles used (3 seeds)")
     ax.legend(loc="lower right")
     fs.save(fig, OUT / "label_efficiency.png")
 
@@ -78,7 +78,7 @@ def baselines_vs_deep():
     rows = [("image difference\n+ threshold", b["difference threshold"]["f1"], fs.GRAY),
             ("pixel random\nforest", b["pixel random forest"]["f1"], fs.GRAY)]
     le = json.load(open(RES / "label_efficiency.json"))
-    rows.append(("Siamese U-Net\n(10 epochs)", np.mean([r["f1"] for r in le["runs"]["scratch@1.0"]]),
+    rows.append(("Siamese U-Net,\n15 epochs, 3 seeds", np.mean([r["f1"] for r in le["runs"]["scratch@1.0"]]),
                  fs.BLUE))
     best = json.load(open(RES / "config_siam_conc_64px.json"))
     rows.append(("best configuration\n(concatenation fusion,\n25 epochs, augment)",

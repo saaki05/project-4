@@ -32,7 +32,7 @@ terravision-datasets  ──▶  terravision-models  ──▶  terravision-anal
 | Item | State |
 |---|---|
 | All three packages implemented and unit-tested on synthetic scenes | yes (shapes, gradients, symmetric fusion, NT-Xent, SSL loss decrease, leakage detection, tile/stitch exactness, GeoJSON georeferencing, API validation) |
-| Experiments on real satellite imagery | **run on a SpaceNet 7-derived new-construction task** (CPU, 3 seeds, 30 areas); OSCD, LEVIR-CD and Sentinel-2 change datasets were unreachable |
+| Experiments on real satellite imagery | **run on a SpaceNet 7-derived new-construction task** (CPU, 3 seeds, 30 areas): baselines, split leakage, label efficiency, configuration comparison; OSCD, LEVIR-CD and Sentinel-2 change datasets were unreachable |
 | Readers for real data | SpaceNet 7 reader/builder written and tested; OSCD / LEVIR-CD readers **not written** |
 | GPU / CUDA / mixed-precision code paths | written, **never executed** (the development container has no GPU); CPU paths are what the tests cover |
 | Published numbers | none; see Results above for the measured values and their limits |
@@ -92,36 +92,41 @@ split in seed 1). With only two seeds, treat the size of the gap as indicative. 
 
 ### Does self-supervised pretraining help with few labels?
 
-`fc-siam-diff` (shared single-date encoder), 10 epochs, 3 seeds, test F1 on the change class
-(mean ± std over seeds; per-seed values in the JSON). SSL = contrastive pretraining (8 epochs,
-temporal positives: the same tile at both dates, plus augmentation) on the *unlabelled* training
-tiles, then supervised fine-tuning. "Label fraction" is the share of the 8,941 training tiles
-whose labels are used; empty tiles are then thinned to the same number as tiles with change
-(identically for both arms), so the tiles actually trained on were about 210–260, 440–480,
-1,100–1,230 and 4,420.
+Concatenation-fusion Siamese U-Net (`fc-siam-conc`), 15 epochs with augmentation and a cosine
+schedule, checkpoints chosen by best-threshold validation F1, **3 seeds**; test F1 on the change
+class, mean ± std. "SSL" = contrastive pretraining (10 epochs, temporal positives: the same
+tile at both dates, plus augmentation) on the *unlabelled* training tiles, then supervised
+fine-tuning. "Label fraction" is the share of the 8,941 training tiles whose labels are used;
+empty tiles are then thinned to as many as there are tiles with change (identically for both
+arms), so the tiles actually trained on were about 210–260, 440–480, 1,100–1,230 and 4,420.
 
-| label fraction | random init F1 | SSL init F1 | SSL − random | seeds where SSL is better |
+| label fraction | random init F1 | SSL init F1 | SSL − random (paired by seed) | seeds where SSL is better |
 |---|---|---|---|---|
-| 5% | 0.138 ± 0.042 | 0.149 ± 0.064 | +0.011 | 2 / 3 |
-| 10% | 0.154 ± 0.008 | 0.170 ± 0.021 | +0.015 | 2 / 3 |
-| 25% | 0.187 ± 0.014 | 0.196 ± 0.042 | +0.009 | 2 / 3 |
-| 100% | 0.227 ± 0.015 | 0.224 ± 0.015 | −0.002 | 2 / 3 |
+| 5% | 0.128 ± 0.051 | 0.192 ± 0.018 | +0.065 (per seed: +0.122, +0.072, +0.001) | 3 / 3 |
+| 10% | 0.185 ± 0.031 | 0.209 ± 0.007 | +0.024 | 2 / 3 |
+| 25% | 0.213 ± 0.017 | 0.229 ± 0.008 | +0.017 | 2 / 3 |
+| 100% | 0.237 ± 0.007 | 0.246 ± 0.008 | +0.009 | 2 / 3 |
 
 ![Test F1 against the share of labelled tiles, random against pretrained initialisation](docs/figures/label_efficiency.png)
 
-What this supports: more labels help clearly (F1 0.14 → 0.23), and the deep model is more than
-twice as good as the pixel baselines (0.09–0.11). SSL initialisation is slightly ahead at the
-three low label fractions (+0.009 to +0.015) and level at 100%, **but the gaps are no larger than
-the seed-to-seed spread with only three seeds**, so this does not establish that SSL helps. The
-contrastive loss did fall (3.10 → 1.9) so the pretraining itself ran; with 8 epochs on 8.9k
-tiles it is a very short pretraining, and a longer one, more unlabelled data or more seeds
-could change the picture.
+What this supports: more labels help clearly (F1 0.13 → 0.24 without pretraining), and the
+mean advantage of SSL initialisation is positive at every fraction and shrinks as labels grow
+(+0.065 at 5% → +0.009 at 100%), the pattern one expects from pretraining. SSL runs also vary
+much less between seeds at low label fractions. **But with three seeds this is suggestive, not
+established**: at 10%, 25% and 100% one seed in three shows no gain, and the 5% gain rests on
+two seeds with a large effect and one with none. The contrastive loss fell from 3.1 to about 1.8,
+so the pretraining ran as intended; 10 epochs on 8.9k tiles is short.
 
-Other limits: one architecture, 64 px tiles, 10 epochs, CPU only, labels derived from building
-footprints (noisy), and 30 areas. Raw values:
+An earlier run of this study (3-epoch-shorter training, |difference| fusion, checkpoints chosen
+by F1 at a fixed 0.5 threshold, which is nearly meaningless with 0.5% positive pixels) found
+gains of only +0.009 to +0.015 at low fractions and −0.002 at 100%, all inside the seed spread
+([`label_efficiency_v1_f1at05_selection.json`](terravision-models/results/spacenet/label_efficiency_v1_f1at05_selection.json)).
+The corrected protocol is the one reported above.
+
+Other limits: 64 px tiles, CPU only, labels derived from building footprints (noisy), 30 areas.
+Raw values:
 [`terravision-models/results/spacenet/label_efficiency.json`](terravision-models/results/spacenet/label_efficiency.json).
 Commands: [`terravision-models/results/spacenet/run.sh`](terravision-models/results/spacenet/run.sh).
-
 
 ### Improving the model: what helped and what did not
 
@@ -159,12 +164,15 @@ means differences of about 0.02 F1 are within noise.
 ![Two held-out scenes: before, after, label and detection result](docs/figures/scene_overlay.png)
 
 **Two methodological problems found along the way (both fixed):**
-(1) Checkpoint selection in the label-efficiency and leakage experiments used F1 at a fixed 0.5
-threshold, which is nearly meaningless with 0.5% positive pixels; this adds noise to those
-earlier runs (it affects all arms equally). The configuration comparison uses best-threshold
-selection. (2) A bug in my `train` command misaligned the validation images and masks, so
-early stopping ran on garbage in two discarded runs; test scores were unaffected because they
-use the full aligned validation set. A regression test now covers it.
+(1) Checkpoint selection originally used F1 at a fixed 0.5 threshold, which is nearly
+meaningless with 0.5% positive pixels. The training loop now selects by best-threshold
+validation F1; the label-efficiency study and the configuration comparison were rerun/run with
+it (the first label-efficiency run is kept for transparency). The split-leakage experiment above
+still uses the old selection and would be worth repeating with it; its comparison is
+like-for-like across split strategies, but all three scores are likely a little low.
+(2) A bug in my `train` command misaligned the validation images and masks, so early stopping
+ran on garbage in two discarded runs; test scores were unaffected because they use the full
+aligned validation set. A regression test now covers it.
 
 ## Quick start
 

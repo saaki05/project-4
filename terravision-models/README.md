@@ -48,7 +48,7 @@ On a machine with a CUDA GPU the same command trains on the GPU with mixed preci
 - **Run on real imagery**: a SpaceNet 7-derived new-construction task (30 areas, 14,918 tiles,
   split by area). Baselines, the split-leakage experiment and the label-efficiency study are in
   `results/spacenet/` and summarised in the repository README, with their limits (CPU only,
-  3 seeds, short training; SSL gains are within seed noise).
+  3 seeds, short training; the SSL gains are positive on average but suggestive, not established).
 - A reader for OSCD / LEVIR-CD is not included: it must be written against the real files.
 - CUDA / mixed-precision paths have never been executed (no GPU in the development
   environment).
