@@ -1,0 +1,27 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install CPU PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Install packages in dependency order
+        run: |
+          pip install -e "terravision-datasets[dev]"
+          pip install -e "terravision-models[dev]"
+          pip install -e "terravision-analytics[dev]"
+      - run: ruff check .
+      - run: pytest -q terravision-datasets
+      - run: pytest -q terravision-models
+      - run: pytest -q terravision-analytics
