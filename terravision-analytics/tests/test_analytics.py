@@ -54,6 +54,7 @@ def trained_model(tmp_path):
     a = np.concatenate([p[1] for p in parts])
     m = np.concatenate([p[2] for p in parts]).astype(np.float32)
     n = len(b)
+    torch.manual_seed(0)
     model = ChangeNet("fc-siam-diff", 3)
     fit(model, (b[:n * 3 // 4], a[:n * 3 // 4], m[:n * 3 // 4]),
         (b[n * 3 // 4:], a[n * 3 // 4:], m[n * 3 // 4:]),

@@ -96,6 +96,7 @@ def test_training_beats_trivial_and_difference_baseline_works():
     n = len(before)
     tr, va, te = slice(0, n // 2), slice(n // 2, 3 * n // 4), slice(3 * n // 4, n)
     pack = lambda s: (before[s], after[s], mask[s])  # noqa: E731
+    torch.manual_seed(0)
     net = ChangeNet("fc-siam-diff", 3)
     info = fit(net, pack(tr), pack(va), FitConfig(epochs=12, batch=8, patience=12), 0, DEV)
     res = evaluate(net, pack(va), pack(te), DEV)
